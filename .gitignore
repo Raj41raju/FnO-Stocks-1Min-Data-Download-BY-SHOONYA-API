@@ -1,6 +1,7 @@
 /Pipfile
 Pipfile.lock
 /token
-__pycache__
 password.txt
 code_snypet.ipynb
+test.ipynb
+snypet_code.ipynb
