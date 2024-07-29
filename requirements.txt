@@ -1,0 +1,9 @@
+pandas
+numpy
+requests
+datetime
+logging
+pyotp
+NorenRestApiPy
+zipfile36
+websocket
