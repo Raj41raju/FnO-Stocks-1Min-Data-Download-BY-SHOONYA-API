@@ -18,11 +18,11 @@ current_date = time.strftime('%Y-%m-%d', local_time)
 path = f"E:\\FnO_Stocks_Intraday_data\\token_old\\{current_date}"
 token_download(path)
 
-api = ShoonyaApiLogin(token = '57DF444TKFWU347YY55N44IRGMALZXA2',
-    user    = 'FA25376',
-    pwd     = 'RAJU@88raju',
-    vc      = 'FA25376_U',
-    app_key = '7f0dca9da87909a1bc35373f68162d42'
+api = ShoonyaApiLogin(token = '*************',
+    user    = '********',
+    pwd     = '********',
+    vc      = '********',
+    app_key = "********"
 )
 
 ############# TOKEN Extraction Block
