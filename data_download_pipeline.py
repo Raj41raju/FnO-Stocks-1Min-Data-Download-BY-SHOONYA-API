@@ -415,6 +415,7 @@ def data_download(save_path: str,
 
             #Save one parquet file per symbol
             symbol_path = os.path.join(save_path, current_date)
+            os.makedirs(symbol_path, exist_ok=True)
             output_file = os.path.join(symbol_path, f"{symbol}.parquet")
             final_df.to_parquet(output_file, index=False)   # single file, not multiple parts
             print(f"✅ Saved {symbol} data to {output_file}")
