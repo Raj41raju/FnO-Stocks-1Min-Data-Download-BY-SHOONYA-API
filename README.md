@@ -1,28 +1,7 @@
+# 📊 Data Download Pipeline with Rate Limiting
 
-# FnO Stocks 1Min Data Download by Shoonya API
-
-The project aims to gather and store 1-minute interval data of Spot, Future, and Option for all FnO Stocks. This data is crucial for traders, analysts, and financial institutions seeking to perform detailed market analysis, backtesting trading strategies, and making informed trading decisions.
-
-## Objectives
-### Data Acquisition: 
-Automate the download of 1-minute interval data for FnO stocks from a reliable financial data API.
-
-### Data Storage: 
-Store the collected data in a structured format suitable for analysis and retrieval.
-### Error Handling: 
-Implement robust error handling to ensure the reliability and accuracy of the data collection process.
-### Scalability: 
-Design the system to handle a large volume of data efficiently, ensuring scalability for future data needs.
-
-
-## API Reference: Shoonya Financial Data API
-
-## Overview
-The Shoonya Financial Data API is a comprehensive tool designed to provide high-frequency financial data for Futures and Options (FnO) stocks. 
-
-This API facilitates the collection of data for different intervals like 1Min, 5Min, 15Min, 60Min, 1Day (Daily) weekly, monthly etc. for Spot prices, Future contracts, and Option contracts. 
-
-This documentation provides a detailed reference for using the Shoonya API, including authentication, endpoint details, request parameters, and response formats.
+This project is a **data download pipeline** that connects to the **Finwesiya API** to fetch intraday market data.  
+It ensures **rate-limited API requests** (10 per second and 200 per minute) and saves the downloaded data in CSV format.
 
 ## Base URL
 for URL for Token Download
@@ -34,51 +13,104 @@ host URL(API)
 REST API: https://api.shoonya.com/NorenWClientTP/
 WebSocket: wss://api.shoonya.com/NorenWSTP/
 
-## Authentication
-To access the Shoonya API, we must have to authenticate using required credentials and a two-factor authentication (2FA) token. The login endpoint requires the following parameters:
+---
 
-userid: Your user ID.
+## 🚀 Features
+- Connects securely to the **Finwesiya API**.
+- Handles **parallel requests** with proper **rate limiting**.
+- Saves intraday data in structured **CSV files**.
+- Logs errors and execution details for monitoring.
+- Configurable via `config.json` for credentials and file paths.
 
-password: Your password.
+---
 
-twoFA: pyotp.TOTP(token).now() The 2FA code generated using the provided token.
+## 📂 Project Structure
 
-vendor_code: Your vendor code. 
+```
+project/
+│── config.json                # Configuration file (paths, credentials, API keys)
+│── data_download_pipeline.py  # Main pipeline script
+│── requirements.txt           # Python dependencies
+│── output/                    # Folder for downloaded CSV files
+```
 
-api_secret: Your API secret key.
+## ⚙️ Setup
 
-imei: "abc1234" A unique identifier for your device (optional) common for all
+1. Clone the repository:
+   ```bash
+   git clone <https://github.com/Raj41raju/FnO-Stocks-1Min-Data-Download-BY-SHOONYA-API/tree/main>
+   ```
 
-## Endpoints
-1. Get Time Price Series
-Retrieves 1-minute interval data for a specific stock.
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Endpoint: /get_time_price_series
-Method: POST
+3. Update `config.json` with your credentials, API keys, and paths.
 
-Request Parameters
+## 🚀 Usage
 
-exchange: The exchange code (e.g., NSE).
+Run the pipeline with:
+```bash
+python main.py
+```
 
-token: The token for the stock.
+This will:
+- Authenticate with the API
+- Download FnO data for (Index and Stocks, also included sensex(only sensex))
+- Save files in the directory
 
-starttime: Start time in Unix timestamp format.
+## 📑 Configuration (`config.json`)
 
-endtime: End time in Unix timestamp format.
+Example config:
+```json
+{
+  "token": "TOTP token key for 2FA",
+  "user": "FAxxxxx",
+  "password": "xxxxx",
+  "vc": "FAxxxx_U",
+  "apikey": "xxxxx",
+  "imei": "xxxxx"
+}
+```
 
-interval: Data interval (in minutes).
+## 🚀 Features
 
-## Error Handling
+- ✅ **Config file support (`config.json`)** – Store API credentials, paths, and keys separately  
+- ✅ **Authentication wrapper** – Handles login/logout with the API  
+- ✅ **Rate-limiting control** – Respects API limits (10 requests/sec, 200 requests/min)  
+- ✅ **Parallel requests** – Improves speed while staying within rate limits  
+- ✅ **Error handling & retries** – Automatic retry for failed requests  
+- ✅ **CSV saving** – Saves clean intraday data for each symbol  
+- ✅ **Execution time tracking** – Measure performance of downloads  
 
-When Api faild to login this code (ret = api.login(userid=user, password=pwd, twoFA=factor2, vendor_code=vc, api_secret=app_key, imei=imei))
-return None 
 
-And on login success we will get o/p and ret.get('stat') will return "ok"
+## 📌 Requirements
 
-The API responses include a stat field indicating the status of the request. Common values include:
+- Python 3.8+
+- pandas
+- requests
+- zipfile36
+- logging
 
-Ok: The request was successful.
-Not_Ok: There was an error with the request.
-For unsuccessful requests, an emsg field provides a descriptive error message.
+Install them via:
+```bash
+pip install -r requirements.txt
+```
 
+
+
+
+
+
+## 🔮 Future Scope
+
+- Build visualization dashboard for data insights by Implement Open Interest (OI) change tracking for Call/Put options 
+- Future OI Analysis
+- 
+
+## 👤 Author
+
+**Raju Kumar Singh**  
+_Data Analyst | Algo Trader | Developer_
 
