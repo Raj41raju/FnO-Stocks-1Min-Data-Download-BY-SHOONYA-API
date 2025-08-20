@@ -16,11 +16,14 @@ WebSocket: wss://api.shoonya.com/NorenWSTP/
 ---
 
 ## 🚀 Features
-- Connects securely to the **Finwesiya API**.
-- Handles **parallel requests** with proper **rate limiting**.
-- Saves intraday data in structured **CSV files**.
-- Logs errors and execution details for monitoring.
-- Configurable via `config.json` for credentials and file paths.
+
+- ✅ **Config file support (`config.json`)** – Store API credentials, paths, and keys separately  
+- ✅ **Authentication wrapper** – Handles login/logout with the API  
+- ✅ **Rate-limiting control** – Respects API limits (10 requests/sec, 200 requests/min)  
+- ✅ **Parallel requests** – Improves speed while staying within rate limits  
+- ✅ **Error handling & retries** – Automatic retry for failed requests  
+- ✅ **CSV saving** – Saves clean intraday data for each symbol  
+- ✅ **Execution time tracking** – Measure performance of downloads  
 
 ---
 
@@ -38,7 +41,7 @@ project/
 
 1. Clone the repository:
    ```bash
-   git clone <https://github.com/Raj41raju/FnO-Stocks-1Min-Data-Download-BY-SHOONYA-API/tree/main>
+   git clone https://github.com/Raj41raju/FnO-Stocks-1Min-Data-Download-BY-SHOONYA-API
    ```
 
 2. Install dependencies:
@@ -73,17 +76,6 @@ Example config:
   "imei": "xxxxx"
 }
 ```
-
-## 🚀 Features
-
-- ✅ **Config file support (`config.json`)** – Store API credentials, paths, and keys separately  
-- ✅ **Authentication wrapper** – Handles login/logout with the API  
-- ✅ **Rate-limiting control** – Respects API limits (10 requests/sec, 200 requests/min)  
-- ✅ **Parallel requests** – Improves speed while staying within rate limits  
-- ✅ **Error handling & retries** – Automatic retry for failed requests  
-- ✅ **CSV saving** – Saves clean intraday data for each symbol  
-- ✅ **Execution time tracking** – Measure performance of downloads  
-
 
 ## 📌 Requirements
 
