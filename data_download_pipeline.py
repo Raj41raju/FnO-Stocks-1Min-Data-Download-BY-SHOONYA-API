@@ -1,16 +1,20 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import dask.dataframe as dd
 import pandas as pd
-from datetime import date
 import os
-import requests
-import zipfile36 as zipfile
-from NorenRestApiPy.NorenApi import NorenApi
 import time
-import logging
+import threading
+from collections import deque
 import pyotp
 import json
-
+from datetime import date
+import requests
+import zipfile36 as zipfile
+from NorenRestApiPy.NorenApi import  NorenApi
+#from threading import Timer
+import time
+import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
 
 def token_download(path: str) -> None:
     """
@@ -132,7 +136,7 @@ def safe_get_time_price_series(api, exch: str, token: str, start_time: float, en
         )
 
         if ret is None:
-            logging.error("❌ No data returned")
+            logging.error(f"❌ No data returned for Token: {token}")
         elif isinstance(ret, dict) and ret.get("stat") != "Ok":
             logging.error(f"❌ API Error: {ret}")
         else:
@@ -280,82 +284,137 @@ def save_csv(save_path: str, df: pd.DataFrame, filename: str, index: bool = Fals
     logging.info(f"File saved at: {file_path}")
 
 
-################# Final Pipeline #######################################
-def data_download(save_path: str, token_save_path: str, start_timestamp: str, end_timestamp: str) -> None:
-    """
-    Main pipeline for downloading intraday data using Shoonya API.
 
-    Args:
-        save_path (str): Folder path to save CSV data.
-        token_save_path (str): Folder path for token storage.
-        start_timestamp (str): Start time string (e.g., '19-08-2025 09:15:00').
-        end_timestamp (str): End time string (e.g., '19-08-2025 15:30:00').
 
-    Notes:
-        - Downloads data for NSE/BSE indices (NIFTY, BANKNIFTY, etc.).
-        - Calls `safe_get_time_price_series` for robust API handling.
-        - Saves per-symbol CSVs in `save_path`.
+# ---------------------- API Rate Limiter ----------------------
+class RateLimiter:
     """
+    Rate limiter: max_calls per interval (seconds).
+    Example: RateLimiter(10, 1) → 10 calls per second for Finwesiya
+             RateLimiter(200, 60) → 200 calls per minute for finwesiya
+    """
+    def __init__(self, max_calls, interval):
+        self.max_calls = max_calls
+        self.interval = interval
+        self.lock = threading.Lock()
+        self.calls = deque()
+
+    def acquire(self):
+        with self.lock:
+            now = time.time()
+
+            # remove calls older than interval
+            while self.calls and now - self.calls[0] > self.interval:
+                self.calls.popleft()
+
+            if len(self.calls) >= self.max_calls:
+                sleep_time = self.interval - (now - self.calls[0])
+                time.sleep(max(sleep_time, 0))
+
+            self.calls.append(time.time())
+
+
+
+# Global limiters for Shoonya API
+per_second_limiter = RateLimiter(20, 1)      # 20 calls/sec
+# per_minute_limiter = RateLimiter(200, 60)    # 200 calls/min
+
+
+def fetch_token_data(api, token, exch, start_time, end_time, stock_df, symbol):
+    """
+    Download intraday data for a single token with rate limiting.
+    """
+
+    # Enforce rate limits
+    per_second_limiter.acquire()
+    # per_minute_limiter.acquire()
+
+    ret = safe_get_time_price_series(api, exch, token, start_time, end_time)
+    if ret:
+        try:
+            df = pd.DataFrame.from_dict(ret)
+            df = add_token_info(df, stock_df, token)
+            return df
+        except Exception as e:
+            print(f"❌ Error processing token {token} for {symbol}: {e}")
+            return None
+    return None
+
+def data_download(save_path: str, 
+                  token_save_path: str, 
+                  start_timestamp: str, 
+                  end_timestamp: str,
+                  max_workers: int = 10
+                  ) -> None:
+
+
+    """
+    Optimized Data Download Pipeline with rate limiting:
+    - Parallel token fetching using ThreadPoolExecutor
+    - Enforces Shoonya API limits (10/sec, 200/min)
+    - Saves results in Parquet format
+    """
+
+    # Suppress DEBUG logs
     logging.getLogger("NorenRestApiPy").setLevel(logging.ERROR)
     logging.getLogger("urllib3").setLevel(logging.ERROR)
 
+
     start_time = get_time(start_timestamp)
-    end_time = get_time(end_timestamp)
+    end_time   = get_time(end_timestamp)
 
-    #IN CASE WE DATE MISMATCH
-    # current_date = pd.to_datetime('19-08-2025', format='%d-%m-%Y').date()
-    # token_path = os.path.join(token_save_path, str(current_date))
-    
-    # Get the current local time as a struct_time object
-    local_time = time.localtime()
-    # Format the current date as a string
-    current_date = time.strftime('%Y-%m-%d', local_time)
-    # token_save_path = "C:\\Finvasia_API_Code\\Token_intraday"
-    current_date = time.strftime('%Y-%m-%d', local_time)
 
+    # Token folder (daily)
+    current_date = time.strftime('%Y-%m-%d', time.localtime())
     token_path = os.path.join(token_save_path, current_date)
+    os.makedirs(token_path, exist_ok=True)
 
-    #Function call to download token file and save it to saperate directory mention in path
-    #C:\\Finvasia_API_Code\\Token_intraday
-    # token_download(token_path)
-
-    # Format tokens
+    # Download tokens if not already
+    token_download(token_path)
     nse_tokens = token_formating(token_path)
 
-    # #Filter only index tokens
-    # index_list = ['NIFTY', 'BANKNIFTY', 'NIFTYNXT50', 'FINNIFTY', 'MIDCPNIFTY', 'BSXOPT', 'BSXFUT']
-    # nse_tokens = nse_tokens[nse_tokens['Symbol'].isin(index_list)]
-
-    # Login credentials
+    # Login API
     token, user, password, vc, app_key = get_login_credintial()
-    api = ShoonyaApiLogin(token, user, password, vc, app_key)
+    api = ShoonyaApiLogin(token=token, user=user, pwd=password, vc=vc, app_key=app_key)
 
-    # Iterate over each symbol
-    for symbol in nse_tokens.Symbol.unique()[:1]:
-        all_day_dfs = []
+    ##########   DATA Downloading Block
+    for symbol in nse_tokens.Symbol.unique()[:20]:   # limit for testing
+        print(f"📥 Downloading data for {symbol}...")
+
         temp_stock_df = nse_tokens[nse_tokens['Symbol'] == symbol]
+        futures = []
 
-        for token in temp_stock_df['Token'].unique():
-            exch = temp_stock_df[temp_stock_df['Token'] == token]['Exchange'].iloc[0]
-            logging.info(f"Fetching data for {symbol} (Token: {token}, Exchange: {exch})")
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            for token in temp_stock_df['Token'].unique():
+                exch = temp_stock_df[temp_stock_df['Token']==token]['Exchange'].iloc[0]
+                futures.append(
+                    executor.submit(fetch_token_data, api, token, exch,
+                                    start_time, end_time, temp_stock_df, symbol)
+                )
 
-            if api:
-                ret = safe_get_time_price_series(api=api, exch=exch,
-                                                 token=token,
-                                                 start_time=start_time,
-                                                 end_time=end_time)
-                if ret:
-                    data_temp_df = pd.DataFrame.from_dict(ret)
-                    data_df = add_token_info(data_temp_df, temp_stock_df, token)
-                    all_day_dfs.append(data_df)
+            results = [f.result() for f in as_completed(futures) if f.result() is not None]
 
-        # If no data, skip symbol
-        if not all_day_dfs:
-            logging.warning(f"No data found for {symbol} with token {token}")
+        if not results:
+            print(f"⚠️ No data found for {symbol}")
             continue
 
-        # Merge and save symbol-level data
-        day_df = pd.concat(all_day_dfs, axis=0)
-        curr_date = pd.to_datetime(day_df['date'].iloc[0], format='%d-%m-%Y').date()
-        filename = f"{symbol}_{curr_date}.csv"
-        save_csv(save_path, day_df, filename)
+        # # Convert to Dask DataFrame
+        # big_df = dd.from_pandas(pd.concat(results, axis=0), npartitions=8)
+
+        # Combine all results for this symbol
+        if results:
+            final_df = pd.concat(results, ignore_index=True)
+
+
+        # # Save as Parquet
+        # symbol_path = os.path.join(save_path, current_date)
+        # os.makedirs(symbol_path, exist_ok=True)
+        # filename = f"{symbol}_{current_date}.parquet"
+        # big_df.to_parquet(os.path.join(symbol_path, filename), engine="pyarrow", overwrite=True)
+        # print(f"✅ Saved {symbol} data to {filename}")
+
+            #Save one parquet file per symbol
+            symbol_path = os.path.join(save_path, current_date)
+            output_file = os.path.join(symbol_path, f"{symbol}.parquet")
+            final_df.to_parquet(output_file, index=False)   # single file, not multiple parts
+            print(f"✅ Saved {symbol} data to {output_file}")

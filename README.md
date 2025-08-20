@@ -4,8 +4,19 @@ This project is a **data download pipeline** that connects to the **Finwesiya AP
 It ensures **rate-limited API requests** (20 per second and 200 per minute) and saves the downloaded data in CSV format.
 
 ---
+
+## How it Work?
+- This will download all the data FnO (Future and Option for **all FnO Stocks** and **all NSE Index** and sensex fut & option) for `1Min` timeframe.
+
+- For each symbol it will create a `.prequet` file save it into a folder named as current date. 
+- **Paths** where token and download data need to save, mention in `main.py` file.
+- Api **login credintial** stored in `config.json` for security purpose and not uploaded on github.
+
+---
+
 ### **Note :** Here i skip the 1Min API Rate Limit and it is working properly.
 
+---
 ## Base URL
 for URL for Token Download
 

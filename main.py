@@ -13,8 +13,8 @@ warnings.filterwarnings('ignore')
 #cd c:\Finvasia_API_Code\Finvasia_Data_Download_Code\FnO-Stocks-1Min-Data-Download-BY-SHOONYA-API
 #git remote add origin https://github.com/Raj41raju/FnO-Stocks-1Min-Data-Download-BY-SHOONYA-API
 
-# from data_download_pipeline import data_download
-from code_speed import data_download
+from data_download_pipeline import data_download
+
 
 start_timestamp = "20-08-2025 09:15:00"
 end_timestamp = "20-08-2025 15:30:00"
